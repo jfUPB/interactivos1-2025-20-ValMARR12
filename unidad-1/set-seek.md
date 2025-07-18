@@ -4,20 +4,20 @@
 
 ### Activida 1
 
-¿que es un sitema fisico interactivo?
+####¿que es un sitema fisico interactivo?
 
-a
+es un sistema donde se mesclan componentes fisicos con programacion y otros sistemas ya sea por medio de sistemas que registran el movimienbto de algo o por otros medios para generar inmersion para las personas
 
-¿como podrias aplicar lo que has visto en tu perfil profecional?
+####¿como podrias aplicar lo que has visto en tu perfil profecional?
 
 a
 
 ###Actividad 2
 
-¿Qué es el diseño/arte generativo?
+####¿Qué es el diseño/arte generativo?
 
-a
+es una practica donde se programa una persona da reglas que una persona le da a una maquina instrucciones y reglas y la maquina con la autonomia genera imagenes o patrones y por medio de algun tipo de output plasman lo que generan, por este medio tambien se puede generar graficos a tiempo real que siguen las instrucciones impuestas por el programador como ejemplo podria ser un sestema que detecta las ondas de sonido y las grafique
 
-¿Cómo podrías aplicar lo que has visto en tu perfil profesional?
+####¿Cómo podrías aplicar lo que has visto en tu perfil profesional?
 
-a
+estos sistemas se pueden aplicar en mi perfil que apartir de colores y formas que me gustan la maquina genere imagenes apartir de mis preferencias y reglas que le ponga a la maquina
