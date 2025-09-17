@@ -137,8 +137,7 @@ Este error se produce porque no hay un mecanismo de sincronización. El receptor
 
 ### ¿Qué cambios tienen los programas y ¿Qué puedes observar en la consola del editor de p5.js?
 
-El framing como solución
-Con la implementación del framing, el código de micro:bit y p5.js cambia para asegurar una comunicación robusta:
+El framing como solución Con la implementación del framing, el código de micro:bit y p5.js cambia para asegurar una comunicación
 
 Micro:bit:
 
@@ -158,6 +157,298 @@ Una vez que encuentra el header, verifica que haya un paquete completo (8 bytes)
 
 Calcula el checksum de los datos recibidos y lo compara con el checksum enviado. Si no coinciden, descarta el paquete para evitar procesar datos corruptos.
 
-Al ejecutar el código final, verás en la consola de p5.js que los datos se imprimen de forma consistente y correcta: microBitX: 500 microBitY: 524 microBitAState: true microBitBState: false. Esto confirma que el framing y el checksum solucionaron los problemas de sincronización e integridad de los datos.
+Al ejecutar el código final se vera en la consola que los datos se imprimen de forma consistente y correcta: microBitX: 500 microBitY: 524 microBitAState: true microBitBState: false. Esto confirma que el framing y el checksum solucionaron los problemas de sincronización e integridad de los datos.
 
+## Actividad 04
 
+### Proceso de construcción de la aplicación con protocolo binario
+
+Adapte el código de p5.js para leer y procesar el nuevo paquete binario.
+
+A diferencia del protocolo ASCII, que usaba ```port.readUntil("\n")``` , el nuevo código utiliza un buffer para acumular los bytes recibidos.
+
+Un bucle while busca el encabezado 0xAA en el buffer. Si no se encuentra, los bytes se descartan para resincronizar la lectura.
+
+Una vez que se encuentra un paquete completo (8 bytes), se desempaqueta usando DataView y los valores se extraen según su tipo y posición.
+
+Prueba: Depuración del desempaquetado (error de sincronización)
+Al principio, intenté leer un paquete de 8 bytes directamente sin un mecanismo de sincronización.
+
+Error: Los valores recibidos eran a menudo incorrectos o se mostraban datos basura en la consola, como microBitX: 3073.
+
+Causa: La comunicación serial no garantiza que la lectura comience al inicio de un paquete. Si se perdía un byte al principio, todo el paquete se desplazaba, y los valores del acelerómetro se interpretaban incorrectamente.
+
+Solucion:
+Implementé un algoritmo de framing en la función readSerialData(). Este algoritmo busca el byte de inicio (0xAA) en el buffer y descarta cualquier dato antes de él. Una vez que lo encuentra, lee los 8 bytes completos. Esto aseguró que cada lectura comenzara en el lugar correcto. Adicionalmente, se agregó la verificación del checksum para descartar paquetes que pudieran llegar corruptos.
+
+### experimentación en la bitácora
+
+#### Comprobación de la sincronización
+
+Verifico que el framing funcionara correctamente y eliminara los errores de lectura.
+
+Para eso Ejecuté la aplicación con el micro:bit enviando los valores binarios estáticos (xValue = 500, etc.) y observé la consola.
+
+Resultado: Los valores impresos en la consola (microBitX: 500, microBitY: 524, etc.) eran siempre consistentes. No hubo errores de lectura o valores incorrectos.
+
+Conclusion: La estrategia de framing solucionó con éxito el problema de sincronización y validó la integridad de los datos.
+
+#### Reintegración de la lógica de los botones
+
+Aseguro que los estados de los botones del micro:bit se leyeran correctamente y afectaran la cuadrícula de dibujo. Sustitui los valores estáticos del micro:bit por los valores dinámicos del acelerómetro y los botones. Presioné los botones A y B mientras movía el micro:bit.
+
+Resultado: Al presionar el botón A, se activaban los mosaicos en la cuadrícula de p5.js en la posición correspondiente al movimiento del micro:bit. Al presionar el botón B, se desactivaban. La respuesta fue instantánea y precisa.
+
+Conclusion: El protocolo binario y el esquema de framing no solo mejoraron el rendimiento, sino que mantuvieron la funcionalidad original de la aplicación de manera robusta.
+
+<img width="1919" height="940" alt="image" src="https://github.com/user-attachments/assets/1e2d8506-62d6-41ae-8aca-ce8a8203de62" />
+
+```
+// Variables para el buffer y los módulos de dibujo
+let serialBuffer = [];
+let modules;
+let tileSize = 30;
+let gridResolutionX;
+let gridResolutionY;
+let tiles = [];
+let doDrawGrid = true;
+let isDebugMode = false;
+
+// Variables para Microbit
+let port;
+let connectBtn;
+let statusText;
+let connectionInitialized = false;
+let microBitConnected = false;
+let microBitX = 0;
+let microBitY = 0;
+let microBitAState = false;
+let microBitBState = false;
+let prevMicroBitAState = false;
+let prevMicroBitBState = false;
+
+const STATES = {
+  WAIT_MICROBIT_CONNECTION: "WAIT_MICROBIT_CONNECTION",
+  RUNNING: "RUNNING",
+};
+let appState = STATES.WAIT_MICROBIT_CONNECTION;
+
+function preload() {
+  modules = [];
+  modules[0] = loadImage('data/00.svg');
+  modules[1] = loadImage('data/01.svg');
+  modules[2] = loadImage('data/02.svg');
+  modules[3] = loadImage('data/03.svg');
+  modules[4] = loadImage('data/04.svg');
+  modules[5] = loadImage('data/05.svg');
+  modules[6] = loadImage('data/06.svg');
+  modules[7] = loadImage('data/07.svg');
+  modules[8] = loadImage('data/08.svg');
+  modules[9] = loadImage('data/09.svg');
+  modules[10] = loadImage('data/10.svg');
+  modules[11] = loadImage('data/11.svg');
+  modules[12] = loadImage('data/12.svg');
+  modules[13] = loadImage('data/13.svg');
+  modules[14] = loadImage('data/14.svg');
+  modules[15] = loadImage('data/15.svg');
+}
+
+function setup() {
+  createCanvas(windowWidth, windowHeight - 100);
+  cursor(CROSS);
+  rectMode(CENTER);
+  imageMode(CENTER);
+  strokeWeight(0.15);
+  textSize(8);
+  textAlign(CENTER, CENTER);
+  gridResolutionX = round(width / tileSize) + 2;
+  gridResolutionY = round(height / tileSize) + 2;
+  initTiles();
+  port = createSerial();
+  connectBtn = createButton('Connect to micro:bit');
+  connectBtn.position(20, height + 20);
+  connectBtn.mousePressed(connectBtnClick);
+  statusText = createElement('span', 'Disconnected');
+  statusText.position(connectBtn.x + connectBtn.width + 20, height + 25);
+  statusText.style('padding', '5px 10px');
+  statusText.style('background-color', '#FFBABA');
+  statusText.style('color', '#D8000C');
+  statusText.style('border-radius', '3px');
+}
+
+function connectBtnClick() {
+  if (!port.opened()) {
+    port.open('MicroPython', 115200);
+    connectionInitialized = false;
+  } else {
+    port.close();
+    microBitConnected = false;
+    statusText.html('Disconnected');
+    statusText.style('background-color', '#FFBABA');
+    statusText.style('color', '#D8000C');
+  }
+}
+
+function updateButtonStates(newAState, newBState) {
+  if (newAState === true && prevMicroBitAState === false) {
+    setTileFromMicrobit();
+  }
+  if (newBState === true && prevMicroBitBState === false) {
+    unsetTileFromMicrobit();
+  }
+  prevMicroBitAState = newAState;
+  prevMicroBitBState = newBState;
+}
+
+function draw() {
+  background(255);
+  if (!port.opened()) {
+    connectBtn.html("Connect to micro:bit");
+    microBitConnected = false;
+  } else {
+    microBitConnected = true;
+    connectBtn.html("Disconnect");
+    if (port.opened() && !connectionInitialized) {
+      port.clear();
+      connectionInitialized = true;
+    }
+    readSerialData();
+  }
+
+  switch (appState) {
+    case STATES.WAIT_MICROBIT_CONNECTION:
+      if (microBitConnected === true) {
+        print("Microbit ready to draw");
+        appState = STATES.RUNNING;
+        statusText.html('Connected');
+        statusText.style('background-color', '#DFF2BF');
+        statusText.style('color', '#4F8A10');
+      }
+      break;
+
+    case STATES.RUNNING:
+      if (microBitConnected === false) {
+        print("Waiting microbit connection");
+        appState = STATES.WAIT_MICROBIT_CONNECTION;
+        statusText.html('Disconnected');
+        statusText.style('background-color', '#FFBABA');
+        statusText.style('color', '#D8000C');
+      }
+      break;
+  }
+
+  if (doDrawGrid) drawGrid();
+  drawModules();
+  fill(0);
+  textAlign(LEFT, TOP);
+  textSize(12);
+  text("Microbit: " + (microBitConnected ? "Connected" : "Disconnected"), 20, 20);
+  text("Position: " + microBitX + ", " + microBitY, 20, 40);
+  text("Buttons: A=" + microBitAState + " B=" + microBitBState, 20, 60);
+  textAlign(CENTER, CENTER);
+}
+
+function readSerialData() {
+  let available = port.availableBytes();
+  if (available > 0) {
+    let newData = port.readBytes(available);
+    serialBuffer = serialBuffer.concat(newData);
+  }
+  while (serialBuffer.length >= 8) {
+    if (serialBuffer[0] !== 0xaa) {
+      serialBuffer.shift();
+      continue;
+    }
+    if (serialBuffer.length < 8) break;
+    let packet = serialBuffer.slice(0, 8);
+    serialBuffer.splice(0, 8);
+    let dataBytes = packet.slice(1, 7);
+    let receivedChecksum = packet[7];
+    let computedChecksum = dataBytes.reduce((acc, val) => acc + val, 0) % 256;
+    if (computedChecksum !== receivedChecksum) {
+      console.log("Checksum error in packet");
+      continue;
+    }
+    let buffer = new Uint8Array(dataBytes).buffer;
+    let view = new DataView(buffer);
+    microBitX = view.getInt16(0);
+    microBitY = view.getInt16(2);
+    microBitAState = view.getUint8(4) === 1;
+    microBitBState = view.getUint8(5) === 1;
+    updateButtonStates(microBitAState, microBitBState);
+    // Log para verificar la decodificación
+    console.log(
+      `X: ${microBitX}, Y: ${microBitY}, A: ${microBitAState}, B: ${microBitBState}`
+    );
+  }
+}
+
+function initTiles() {
+  for (var gridX = 0; gridX < gridResolutionX; gridX++) {
+    tiles[gridX] = [];
+    for (var gridY = 0; gridY < gridResolutionY; gridY++) {
+      tiles[gridX][gridY] = 0;
+    }
+  }
+}
+
+function setTileFromMicrobit() {
+  var gridX = floor(map(microBitX, -1024, 1024, 0, gridResolutionX - 1));
+  gridX = constrain(gridX, 1, gridResolutionX - 2);
+  var gridY = floor(map(microBitY, -1024, 1024, 0, gridResolutionY - 1));
+  gridY = constrain(gridY, 1, gridResolutionY - 2);
+  tiles[gridX][gridY] = 1;
+}
+
+function unsetTileFromMicrobit() {
+  var gridX = floor(map(microBitX, -1024, 1024, 0, gridResolutionX - 1));
+  gridX = constrain(gridX, 1, gridResolutionX - 2);
+  var gridY = floor(map(microBitY, -1024, 1024, 0, gridResolutionY - 1));
+  gridY = constrain(gridY, 1, gridResolutionY - 2);
+  tiles[gridX][gridY] = 0;
+}
+
+function drawGrid() {
+  for (var gridX = 0; gridX < gridResolutionX; gridX++) {
+    for (var gridY = 0; gridY < gridResolutionY; gridY++) {
+      var posX = tileSize * gridX - tileSize / 2;
+      var posY = tileSize * gridY - tileSize / 2;
+      fill(255);
+      if (isDebugMode) {
+        if (tiles[gridX][gridY] == 1) fill(220);
+      }
+      rect(posX, posY, tileSize, tileSize);
+    }
+  }
+}
+
+function drawModules() {
+  for (var gridX = 0; gridX < gridResolutionX - 1; gridX++) {
+    for (var gridY = 0; gridY < gridResolutionY - 1; gridY++) {
+      if (tiles[gridX][gridY] == 1) {
+        var NORTH = str(tiles[gridX][gridY - 1]);
+        var WEST = str(tiles[gridX - 1][gridY]);
+        var SOUTH = str(tiles[gridX][gridY + 1]);
+        var EAST = str(tiles[gridX + 1][gridY]);
+        var binaryResult = NORTH + WEST + SOUTH + EAST;
+        var decimalResult = parseInt(binaryResult, 2);
+        var posX = tileSize * gridX - tileSize / 2;
+        var posY = tileSize * gridY - tileSize / 2;
+        image(modules[decimalResult], posX, posY, tileSize, tileSize);
+        if (isDebugMode) {
+          fill(150);
+          text(decimalResult + '\n' + binaryResult, posX, posY);
+        }
+      }
+    }
+  }
+}
+
+function keyPressed() {
+  if (key == 's' || key == 'S') saveCanvas(gd.timestamp(), 'png');
+  if (keyCode == DELETE || keyCode == BACKSPACE) initTiles();
+  if (key == 'g' || key == 'G') doDrawGrid = !doDrawGrid;
+  if (key == 'd' || key == 'D') isDebugMode = !isDebugMode;
+}
+
+```
