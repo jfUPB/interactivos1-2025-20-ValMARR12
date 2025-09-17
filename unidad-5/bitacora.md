@@ -43,13 +43,19 @@ Estos "eventos" no son eventos nativos de p5.js sinode la función del micro:bit
 
 ### 5. Capturas de pantalla de los algunos dibujos que hayas hecho con el sketch. 
 
+<img width="1916" height="948" alt="Captura de pantalla 2025-09-17 162032" src="https://github.com/user-attachments/assets/c4eccaec-f4b3-4164-a65e-d155d0458cca" />
+
 ## Actividad 02
 
 ### Captura del resultado en texto
 
+<img width="1003" height="565" alt="Captura de pantalla 2025-09-17 162727" src="https://github.com/user-attachments/assets/5480056f-8f5f-40b4-aa52-e7eb11ccf7c1" />
+
 Al ver los datos binarios como texto en la terminal, el resultado se ve como una secuencia de caracteres incomprensibles y símbolos, como ¿?¿..., þÿ o  . Esto pasa porque la terminal esta interpretando los bytes binarios como caracteres ASCII, lo cual no es su función y genera una salida ilegible.
 
 ### Captura del resultado en Hex y su relación con el código
+
+<img width="1006" height="712" alt="Captura de pantalla 2025-09-17 163047" src="https://github.com/user-attachments/assets/efc3f163-4702-4e00-9e63-9b2b7e3fe94a" />
 
 Cuando se cambia a la vista hex la terminal muestra los bytes crudos en un formato hexadecimal por cada mensaje enviado, se ven 6 bytes esto esta relacionado con la línea de codigo ```  data = struct.pack('>2h2B', xValue, yValue, int(aState), int(bState)).```
 
@@ -76,6 +82,8 @@ desventajas:
 La longitud del mensaje cambia según el valor de los datos, lo que puede complicar la lectura
 
 ### Captura del experimento con el gesto 'shake' y análisis de los bytes
+
+<img width="994" height="724" alt="Captura de pantalla 2025-09-17 163649" src="https://github.com/user-attachments/assets/e83d61b1-b234-48fe-97c3-189e4dce4bbb" />
 
 Los primeros 4 bytes representan los valores xValue y yValue del acelerómetro.
 
@@ -151,4 +159,5 @@ Una vez que encuentra el header, verifica que haya un paquete completo (8 bytes)
 Calcula el checksum de los datos recibidos y lo compara con el checksum enviado. Si no coinciden, descarta el paquete para evitar procesar datos corruptos.
 
 Al ejecutar el código final, verás en la consola de p5.js que los datos se imprimen de forma consistente y correcta: microBitX: 500 microBitY: 524 microBitAState: true microBitBState: false. Esto confirma que el framing y el checksum solucionaron los problemas de sincronización e integridad de los datos.
+
 
