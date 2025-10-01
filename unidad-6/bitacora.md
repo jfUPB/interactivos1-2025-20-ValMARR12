@@ -12,3 +12,12 @@ Lo que ocurre es que la terminal mostró una lista de paquetes y dependencias qu
 el mesaje que aparece es  "El servidor está escuchando en el puerto 3000" lo que indica este mensaje es wl servidor web se ha iniciado y está listo para aceptar peticiones del navegador en la dirección ``http://localhost:3000``
 
 ### Describe lo que ves inicialmente en page1 y page2 en tu navegador.
+
+se ven dos puntos que en el momento que se sincroniza se conectan por una linea
+
+### ¿Qué mensajes aparecieron en la terminal del servidor cuando abriste page1 y page2?
+
+Aparecieron logs como GET /page1 200 y GET /page2 200.	
+
+### Describe qué sucede en ambas páginas del navegador cuando mueves una de las ventanas. ¿Cambia algo visualmente? ¿Qué mensajes aparecen (si los hay) en la consola del navegador (usualmente accesible con F12 -> Pestaña Consola) y en la terminal del servidor?
+
