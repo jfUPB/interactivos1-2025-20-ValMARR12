@@ -341,3 +341,5 @@ Actividad 03 5.0:	se realizaron y reportaron todos los experimentos en el servid
 Actividad 04 5.o:	se realizaron y reportaron todos los experimentos en el cliente, cubriendo la dependencia del servidor, la inicialización de datos, la comunicación bidireccional y la optimización de la función checkWindowPosition()
 
 Actividad 05 4.5:	se explico la idea, se implemento completamente con código funcional (server.js, voterA.js, voterB.js) y se incluyó todo el código. El único elemento faltante son los bocetos 
+
+## Nota final: 4.8
